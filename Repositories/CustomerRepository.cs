@@ -9,6 +9,7 @@ namespace ChinookSuperheroes.Repositories
     public class CustomerRepository : ICustomerRepository
     {
         private readonly SqlConnection _connection;
+        private static bool _databaseInitialized = false;
 
         public CustomerRepository(SqlConnection connection)
         {
@@ -35,7 +36,7 @@ namespace ChinookSuperheroes.Repositories
             return customers;
         }
 
-        public async Task<Customer> GetCustomerByIdAsync(int id)
+        public async Task<Customer?> GetCustomerByIdAsync(int id)
         {
             var command = _connection.CreateCommand();
             command.CommandText = "SELECT * FROM Customer WHERE CustomerId = @CustomerId";
@@ -88,6 +89,56 @@ namespace ChinookSuperheroes.Repositories
             command.Parameters.AddWithValue("@Id", id);
 
             await command.ExecuteNonQueryAsync();
+        }
+
+        public async Task InitializeDatabaseAsync()
+        {
+            if (_databaseInitialized) return;
+
+            _databaseInitialized = true;
+
+            try
+            {
+                // First, ensure we're connected to a default database (like 'master')
+                var command = new SqlCommand("SELECT DB_ID('Superheroes')", _connection);
+                var result = await command.ExecuteScalarAsync();
+
+                if (result == DBNull.Value)
+                {
+                    // Database doesn't exist, so create it
+                    command = new SqlCommand("CREATE DATABASE SuperheroesDB", _connection);
+                    await command.ExecuteNonQueryAsync();
+                    Console.WriteLine("SuperheroesDB created successfully.");
+                }
+
+                // Switch to the SuperheroesDB
+                _connection.ChangeDatabase("SuperheroesDB");
+
+                // Now create the Customer table if it doesn't exist
+                command = new SqlCommand(@"
+                    IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Customer' and xtype='U')
+                    BEGIN
+                        CREATE TABLE Customer (
+                            CustomerId INT PRIMARY KEY IDENTITY(1,1),
+                            FirstName NVARCHAR(50),
+                            LastName NVARCHAR(50)
+                        )
+                        PRINT 'Customer table created successfully.'
+                    END
+                    ELSE
+                    BEGIN
+                        PRINT 'Customer table already exists.'
+                    END", _connection);
+                await command.ExecuteNonQueryAsync();
+
+                Console.WriteLine("Database initialized successfully.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in InitializeDatabaseAsync: {ex.Message}");
+                _databaseInitialized = false; // Reset if initialization fails
+                throw;
+            }
         }
     }
 }

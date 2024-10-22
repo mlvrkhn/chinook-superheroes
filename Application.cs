@@ -1,20 +1,26 @@
+using ChinookApp.Models;
 using ChinookSuperheroes.Repositories;
 
 namespace ChinookSuperheroes
 {
     public class Application
     {
-        private readonly string _connectionString;
         private readonly ICustomerRepository _customerRepository;
+        private bool _isInitialized = false;
 
-        public Application(string connectionString, ICustomerRepository customerRepository)
+        public Application(ICustomerRepository customerRepository)
         {
-            _connectionString = connectionString;
             _customerRepository = customerRepository;
         }
 
         public async Task RunAsync(string[] args)
         {
+            if (!_isInitialized)
+            {
+                await InitializeDatabaseAsync();
+                _isInitialized = true;
+            }
+
             if (args.Length == 0)
             {
                 ShowHelp();
@@ -35,10 +41,10 @@ namespace ChinookSuperheroes
                     switch (args[1].ToLower())
                     {
                         case "superhero":
-                            AddSuperhero();
+                            await AddSuperheroAsync();
                             break;
                         case "power":
-                            AddPower();
+                            await AddPowerAsync();
                             break;
                         default:
                             Console.WriteLine("Unknown add command. Use 'superhero' or 'power'.");
@@ -54,10 +60,10 @@ namespace ChinookSuperheroes
                     switch (args[1].ToLower())
                     {
                         case "superheroes":
-                            ListSuperheroes();
+                            await ListSuperheroesAsync();
                             break;
                         case "powers":
-                            ListPowers();
+                            await ListPowersAsync();
                             break;
                         case "customers":
                             await ListCustomersAsync();
@@ -84,35 +90,124 @@ namespace ChinookSuperheroes
             Console.WriteLine("  list powers - List all superpowers");
             Console.WriteLine("  list customers - List all customers");
         }
+        private async Task AddCustomerAsync()
+        {
+            Console.WriteLine("Adding a new customer...");
+            Console.Write("Enter customer's first name: ");
+            string firstName = Console.ReadLine() ?? string.Empty;
+            Console.Write("Enter customer's last name: ");
+            string lastName = Console.ReadLine() ?? string.Empty;
+
+            var newCustomer = new Customer
+            {
+                FirstName = firstName,
+                LastName = lastName
+            };
+
+            try
+            {
+                await _customerRepository.AddCustomerAsync(newCustomer);
+                Console.WriteLine("Customer added successfully.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error adding customer: {ex.Message}");
+            }
+        }
+
+        private async Task UpdateCustomerAsync()
+        {
+            Console.WriteLine("Updating a customer...");
+            Console.Write("Enter customer ID to update: ");
+            if (!int.TryParse(Console.ReadLine(), out int customerId))
+            {
+                Console.WriteLine("Invalid customer ID.");
+                return;
+            }
+
+            var existingCustomer = await _customerRepository.GetCustomerByIdAsync(customerId);
+            if (existingCustomer == null)
+            {
+                Console.WriteLine("Customer not found.");
+                return;
+            }
+
+            Console.Write($"Enter new first name (current: {existingCustomer.FirstName}): ");
+            string firstName = Console.ReadLine() ?? existingCustomer.FirstName;
+            Console.Write($"Enter new last name (current: {existingCustomer.LastName}): ");
+            string lastName = Console.ReadLine() ?? existingCustomer.LastName;
+
+            existingCustomer.FirstName = firstName;
+            existingCustomer.LastName = lastName;
+
+            try
+            {
+                await _customerRepository.UpdateCustomerAsync(existingCustomer);
+                Console.WriteLine("Customer updated successfully.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating customer: {ex.Message}");
+            }
+        }
+
+        private async Task DeleteCustomerAsync()
+        {
+            Console.WriteLine("Deleting a customer...");
+            Console.Write("Enter customer ID to delete: ");
+            if (!int.TryParse(Console.ReadLine(), out int customerId))
+            {
+                Console.WriteLine("Invalid customer ID.");
+                return;
+            }
+
+            try
+            {
+                await _customerRepository.DeleteCustomerAsync(customerId);
+                Console.WriteLine("Customer deleted successfully.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting customer: {ex.Message}");
+            }
+        }
 
         private async Task InitializeDatabaseAsync()
         {
-            Console.WriteLine("Initializing database...");
-            // Implement database initialization logic here
+            try
+            {
+                await _customerRepository.InitializeDatabaseAsync();
+                Console.WriteLine("Database initialized successfully.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error initializing database: {ex.Message}");
+                throw; // Re-throw the exception to stop execution if initialization fails
+            }
         }
 
-        private void AddSuperhero()
+        private async Task AddSuperheroAsync()
         {
             Console.WriteLine("Adding a new superhero...");
-            // Implement superhero addition logic here
+            await AddCustomerAsync();
         }
 
-        private void AddPower()
+        private async Task AddPowerAsync()
         {
             Console.WriteLine("Adding a new superpower...");
-            // Implement superpower addition logic here
+            await AddCustomerAsync();
         }
 
-        private void ListSuperheroes()
+        private async Task ListSuperheroesAsync()
         {
             Console.WriteLine("Listing all superheroes...");
-            // Implement superhero listing logic here
+            await ListCustomersAsync();
         }
 
-        private void ListPowers()
+        private async Task ListPowersAsync()
         {
             Console.WriteLine("Listing all superpowers...");
-            // Implement superpower listing logic here
+            await AddCustomerAsync();
         }
 
         private async Task ListCustomersAsync()

@@ -31,7 +31,7 @@ class Program
             await connection.OpenAsync();
 
             // Create an instance of the Application class
-            var app = new Application(GetConnectionString(configuration), serviceProvider.GetRequiredService<ICustomerRepository>());
+            var app = new Application(serviceProvider.GetRequiredService<ICustomerRepository>());
 
             // Run the application
             await app.RunAsync(args);
