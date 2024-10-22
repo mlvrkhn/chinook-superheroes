@@ -1,3 +1,5 @@
+using ChinookApp.Models;
+
 namespace ChinookSuperheroes.Repositories
 {
     public interface ICustomerRepository

@@ -1,7 +1,4 @@
-using System;
-using System.Data.SqlClient;
 using ChinookSuperheroes.Repositories;
-using System.Threading.Tasks;
 
 namespace ChinookSuperheroes
 {
@@ -124,7 +121,7 @@ namespace ChinookSuperheroes
             var customers = await _customerRepository.GetAllCustomersAsync();
             foreach (var customer in customers)
             {
-                Console.WriteLine($"ID: {customer.Id}, Name: {customer.Name}");
+                Console.WriteLine($"ID: {customer.Id}, Name: {customer.FirstName}, Lastname: {customer.LastName}");
             }
         }
     }

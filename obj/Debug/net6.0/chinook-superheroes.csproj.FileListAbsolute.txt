@@ -20,3 +20,17 @@
 /Users/mlvrkhn/Code/chinook-superheroes/obj/Debug/net6.0/chinook-superheroes.pdb
 /Users/mlvrkhn/Code/chinook-superheroes/obj/Debug/net6.0/chinook-superheroes.genruntimeconfig.cache
 /Users/mlvrkhn/Code/chinook-superheroes/obj/Debug/net6.0/ref/chinook-superheroes.dll
+/Users/mlvrkhn/Code/chinook-superheroes/bin/Debug/net6.0/Microsoft.Extensions.Configuration.dll
+/Users/mlvrkhn/Code/chinook-superheroes/bin/Debug/net6.0/Microsoft.Extensions.Configuration.Abstractions.dll
+/Users/mlvrkhn/Code/chinook-superheroes/bin/Debug/net6.0/Microsoft.Extensions.Configuration.FileExtensions.dll
+/Users/mlvrkhn/Code/chinook-superheroes/bin/Debug/net6.0/Microsoft.Extensions.Configuration.Json.dll
+/Users/mlvrkhn/Code/chinook-superheroes/bin/Debug/net6.0/Microsoft.Extensions.DependencyInjection.dll
+/Users/mlvrkhn/Code/chinook-superheroes/bin/Debug/net6.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll
+/Users/mlvrkhn/Code/chinook-superheroes/bin/Debug/net6.0/Microsoft.Extensions.FileProviders.Abstractions.dll
+/Users/mlvrkhn/Code/chinook-superheroes/bin/Debug/net6.0/Microsoft.Extensions.FileProviders.Physical.dll
+/Users/mlvrkhn/Code/chinook-superheroes/bin/Debug/net6.0/Microsoft.Extensions.FileSystemGlobbing.dll
+/Users/mlvrkhn/Code/chinook-superheroes/bin/Debug/net6.0/Microsoft.Extensions.Primitives.dll
+/Users/mlvrkhn/Code/chinook-superheroes/bin/Debug/net6.0/System.Text.Encodings.Web.dll
+/Users/mlvrkhn/Code/chinook-superheroes/bin/Debug/net6.0/System.Text.Json.dll
+/Users/mlvrkhn/Code/chinook-superheroes/bin/Debug/net6.0/runtimes/browser/lib/net6.0/System.Text.Encodings.Web.dll
+/Users/mlvrkhn/Code/chinook-superheroes/bin/Debug/net6.0/appsettings.json

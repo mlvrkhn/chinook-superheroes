@@ -1,8 +1,8 @@
-﻿using System.Data.SqlClient;
+﻿using System;
+using System.Data.SqlClient;
 using ChinookSuperheroes;
 using ChinookSuperheroes.Repositories;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.DependencyInjection;
 
 class Program
@@ -31,7 +31,7 @@ class Program
             await connection.OpenAsync();
 
             // Create an instance of the Application class
-            var app = new Application(connection.ConnectionString, serviceProvider.GetRequiredService<ICustomerRepository>());
+            var app = new Application(GetConnectionString(configuration), serviceProvider.GetRequiredService<ICustomerRepository>());
 
             // Run the application
             await app.RunAsync(args);
@@ -42,20 +42,16 @@ class Program
         catch (Exception ex)
         {
             Console.WriteLine($"An error occurred: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
         }
     }
 
-    /// <summary>
-    /// Retrieves the connection string from the configuration.
-    /// </summary>
-    /// <param name="configuration">The application configuration.</param>
-    /// <returns>The connection string for the database.</returns>
     static string GetConnectionString(IConfiguration configuration)
     {
-        string connectionString = configuration.GetConnectionString("DefaultConnection");
+        string connectionString = configuration.GetConnectionString("ChinookSuperheroes")!;
         if (string.IsNullOrEmpty(connectionString))
         {
-            throw new InvalidOperationException("DefaultConnection string is not found in the configuration.");
+            throw new InvalidOperationException("ChinookSuperheroes connection string is not found in the configuration.");
         }
         return connectionString;
     }

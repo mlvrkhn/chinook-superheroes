@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
+using ChinookApp.Models;
 
 namespace ChinookSuperheroes.Repositories
 {
@@ -24,7 +25,7 @@ namespace ChinookSuperheroes.Repositories
             {
                 customers.Add(new Customer
                 {
-                    CustomerId = reader.GetInt32(reader.GetOrdinal("CustomerId")),
+                    Id = reader.GetInt32(reader.GetOrdinal("CustomerId")),
                     FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
                     LastName = reader.GetString(reader.GetOrdinal("LastName")),
                     // Add other properties as needed
@@ -36,15 +37,16 @@ namespace ChinookSuperheroes.Repositories
 
         public async Task<Customer> GetCustomerByIdAsync(int id)
         {
-            var command = new SqlCommand("SELECT * FROM Customer WHERE CustomerId = @Id", _connection);
-            command.Parameters.AddWithValue("@Id", id);
+            var command = _connection.CreateCommand();
+            command.CommandText = "SELECT * FROM Customer WHERE CustomerId = @CustomerId";
+            command.Parameters.AddWithValue("@CustomerId", id);
 
             using var reader = await command.ExecuteReaderAsync();
             if (await reader.ReadAsync())
             {
                 return new Customer
                 {
-                    CustomerId = reader.GetInt32(reader.GetOrdinal("CustomerId")),
+                    Id = reader.GetInt32(reader.GetOrdinal("CustomerId")),
                     FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
                     LastName = reader.GetString(reader.GetOrdinal("LastName")),
                     // Add other properties as needed
@@ -66,8 +68,13 @@ namespace ChinookSuperheroes.Repositories
 
         public async Task UpdateCustomerAsync(Customer customer)
         {
-            var command = new SqlCommand("UPDATE Customer SET FirstName = @FirstName, LastName = @LastName WHERE CustomerId = @Id", _connection);
-            command.Parameters.AddWithValue("@Id", customer.CustomerId);
+            var command = _connection.CreateCommand();
+            command.CommandText = @"
+                UPDATE Customer 
+                SET FirstName = @FirstName, LastName = @LastName, /* other fields... */
+                WHERE CustomerId = @CustomerId";
+            
+            command.Parameters.AddWithValue("@CustomerId", customer.Id);
             command.Parameters.AddWithValue("@FirstName", customer.FirstName);
             command.Parameters.AddWithValue("@LastName", customer.LastName);
             // Add other parameters as needed
