@@ -1,60 +1,62 @@
-﻿// See https://aka.ms/new-console-template for more information
-using System.Data.SqlClient;
-using System.Text.Json;
+﻿using System.Data.SqlClient;
+using ChinookSuperheroes;
+using ChinookSuperheroes.Repositories;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.Json;
+using Microsoft.Extensions.DependencyInjection;
+
 class Program
 {
-    /// <summary>
-    /// The entry point of the application.
-    /// </summary>
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
-        Console.WriteLine("Welcome to SuperheroesDB Console App!");
-        
-        string connectionString = GetConnectionString();
-        CreateDatabase(connectionString);
-        CreateTables(connectionString);
-        
-        Console.WriteLine("Database and tables created successfully!");
+        try
+        {
+            // Build configuration
+            IConfiguration configuration = new ConfigurationBuilder()
+                .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .Build();
+
+            // Setup dependency injection
+            var services = new ServiceCollection();
+            services.AddSingleton<IConfiguration>(configuration);
+            services.AddSingleton<ICustomerRepository, CustomerRepository>();
+            services.AddSingleton<SqlConnection>(_ => new SqlConnection(GetConnectionString(configuration)));
+            var serviceProvider = services.BuildServiceProvider();
+
+            // Get the SqlConnection from the service provider
+            var connection = serviceProvider.GetRequiredService<SqlConnection>();
+
+            // Open the connection
+            await connection.OpenAsync();
+
+            // Create an instance of the Application class
+            var app = new Application(connection.ConnectionString, serviceProvider.GetRequiredService<ICustomerRepository>());
+
+            // Run the application
+            await app.RunAsync(args);
+
+            // Close the connection when done
+            await connection.CloseAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An error occurred: {ex.Message}");
+        }
     }
 
     /// <summary>
     /// Retrieves the connection string from the configuration.
     /// </summary>
+    /// <param name="configuration">The application configuration.</param>
     /// <returns>The connection string for the database.</returns>
-    static string GetConnectionString()
+    static string GetConnectionString(IConfiguration configuration)
     {
-        // Read connection string from appsettings.json
-        string json = File.ReadAllText("appsettings.json");
-        using JsonDocument doc = JsonDocument.Parse(json);
-        JsonElement root = doc.RootElement;
-        JsonElement connectionStrings = root.GetProperty("ConnectionStrings");
-        return connectionStrings.GetProperty("DefaultConnection").GetString();
-    }
-
-    /// <summary>
-    /// Creates the SuperheroesDb database if it doesn't exist.
-    /// </summary>
-    /// <param name="connectionString">The connection string to the server.</param>
-    static void CreateDatabase(string connectionString)
-    {
-        using (SqlConnection connection = new SqlConnection(connectionString))
+        string connectionString = configuration.GetConnectionString("DefaultConnection");
+        if (string.IsNullOrEmpty(connectionString))
         {
-            connection.Open();
-            string sql = "IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'SuperheroesDb') CREATE DATABASE SuperheroesDb;";
-            using (SqlCommand command = new SqlCommand(sql, connection))
-            {
-                command.ExecuteNonQuery();
-            }
+            throw new InvalidOperationException("DefaultConnection string is not found in the configuration.");
         }
-    }
-
-    /// <summary>
-    /// Creates the necessary tables in the SuperheroesDb database.
-    /// </summary>
-    /// <param name="connectionString">The connection string to the database.</param>
-    static void CreateTables(string connectionString)
-    {
-        // TODO: Implement table creation logic
-        Console.WriteLine("Creating tables...");
+        return connectionString;
     }
 }
