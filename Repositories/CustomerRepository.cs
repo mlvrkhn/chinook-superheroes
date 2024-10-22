@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
+using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using ChinookApp.Models;
 
@@ -95,50 +97,82 @@ namespace ChinookSuperheroes.Repositories
         {
             if (_databaseInitialized) return;
 
-            _databaseInitialized = true;
-
             try
             {
-                // First, ensure we're connected to a default database (like 'master')
-                var command = new SqlCommand("SELECT DB_ID('Superheroes')", _connection);
-                var result = await command.ExecuteScalarAsync();
+                // Check if the database exists
+                bool dbExists = await CheckDatabaseExistsAsync();
 
-                if (result == DBNull.Value)
+                if (!dbExists)
                 {
-                    // Database doesn't exist, so create it
-                    command = new SqlCommand("CREATE DATABASE SuperheroesDB", _connection);
-                    await command.ExecuteNonQueryAsync();
-                    Console.WriteLine("SuperheroesDB created successfully.");
+                    // Create the database if it doesn't exist
+                    await CreateDatabaseAsync();
+                    Console.WriteLine("Database created successfully.");
+                }
+                else
+                {
+                    Console.WriteLine("Database already exists. Skipping creation.");
                 }
 
-                // Switch to the SuperheroesDB
-                _connection.ChangeDatabase("SuperheroesDB");
-
-                // Now create the Customer table if it doesn't exist
-                command = new SqlCommand(@"
-                    IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Customer' and xtype='U')
-                    BEGIN
-                        CREATE TABLE Customer (
-                            CustomerId INT PRIMARY KEY IDENTITY(1,1),
-                            FirstName NVARCHAR(50),
-                            LastName NVARCHAR(50)
-                        )
-                        PRINT 'Customer table created successfully.'
-                    END
-                    ELSE
-                    BEGIN
-                        PRINT 'Customer table already exists.'
-                    END", _connection);
-                await command.ExecuteNonQueryAsync();
-
+                // Proceed with table creation and other initialization steps
+                await CreateTablesAsync();
+                
+                _databaseInitialized = true;
                 Console.WriteLine("Database initialized successfully.");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error in InitializeDatabaseAsync: {ex.Message}");
-                _databaseInitialized = false; // Reset if initialization fails
                 throw;
             }
+        }
+
+        private async Task<bool> CheckDatabaseExistsAsync()
+        {
+            var command = _connection.CreateCommand();
+            command.CommandText = "SELECT COUNT(*) FROM sys.databases WHERE name = @dbName";
+            command.Parameters.AddWithValue("@dbName", _connection.Database);
+            
+            int count = (int)(await command.ExecuteScalarAsync() ?? 0);
+            return count > 0;
+        }
+
+        private async Task CreateDatabaseAsync()
+        {
+            var command = _connection.CreateCommand();
+            command.CommandText = $"CREATE DATABASE {_connection.Database}";
+            await command.ExecuteNonQueryAsync();
+        }
+
+        private async Task CreateTablesAsync()
+        {
+            string[] sqlFiles = Directory.GetFiles("SQL_Commands", "*.sql");
+
+            foreach (string sqlFile in sqlFiles)
+            {
+                string sqlContent = await File.ReadAllTextAsync(sqlFile);
+                string[] sqlCommands = sqlContent.Split(new[] { "GO" }, StringSplitOptions.RemoveEmptyEntries);
+
+                foreach (string sqlCommand in sqlCommands)
+                {
+                    if (string.IsNullOrWhiteSpace(sqlCommand))
+                        continue;
+
+                    using var command = _connection.CreateCommand();
+                    command.CommandText = sqlCommand;
+                    try
+                    {
+                        await command.ExecuteNonQueryAsync();
+                    }
+                    catch (SqlException ex)
+                    {
+                        Console.WriteLine($"Error executing SQL from {Path.GetFileName(sqlFile)}: {ex.Message}");
+                        // Optionally, you might want to throw the exception here if you want to stop the process
+                        // throw;
+                    }
+                }
+            }
+
+            Console.WriteLine("All tables created successfully.");
         }
     }
 }
