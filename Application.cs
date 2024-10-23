@@ -1,6 +1,7 @@
 using ChinookApp.Models;
 using ChinookSuperheroes.Repositories;
 using static ChinookApp.Helpers.Helpers;
+using System.Linq;
 
 namespace ChinookSuperheroes
 {
@@ -42,6 +43,9 @@ namespace ChinookSuperheroes
                     break;
                 case "update":
                     await UpdateCustomerAsync();
+                    break;
+                case "search":
+                    await GetCustomerByNameAsync();
                     break;
                 case "delete":
                     await DeleteCustomerAsync();
@@ -238,6 +242,42 @@ namespace ChinookSuperheroes
                 Console.WriteLine($"ID: {customer.Id}, Name: {customer.FirstName} {customer.LastName}, Email: {customer.Email}");
                 Console.WriteLine($"Phone: {customer.Phone}, Country: {customer.Country}, Postal Code: {customer.PostalCode}");
                 Console.WriteLine(new string('-', 50));
+            }
+        }
+
+        private async Task GetCustomerByNameAsync()
+        {
+            Console.Write("Enter customer name to search: ");
+            string searchQuery = Console.ReadLine()?.Trim() ?? "";
+
+            if (string.IsNullOrWhiteSpace(searchQuery))
+            {
+                Console.WriteLine("Search query cannot be empty.");
+                return;
+            }
+
+            try
+            {
+                var customer = await _customerRepository.GetCustomerByNameAsync(searchQuery);
+
+                if (customer != null)
+                {
+                    Console.WriteLine($"Customer found:");
+                    Console.WriteLine($"ID: {customer.Id}");
+                    Console.WriteLine($"Name: {customer.FirstName} {customer.LastName}");
+                    Console.WriteLine($"Email: {customer.Email}");
+                    Console.WriteLine($"Phone: {customer.Phone}");
+                    Console.WriteLine($"Country: {customer.Country}");
+                    Console.WriteLine($"Postal Code: {customer.PostalCode}");
+                }
+                else
+                {
+                    Console.WriteLine("No customer found with the given name.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error searching for customer: {ex.Message}");
             }
         }
     }

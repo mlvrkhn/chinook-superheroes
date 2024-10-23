@@ -60,6 +60,30 @@ namespace ChinookSuperheroes.Repositories
             return null;
         }
 
+        public async Task<Customer?> GetCustomerByNameAsync(string query)
+        {
+            var command = _connection.CreateCommand();
+            command.CommandText = "SELECT * FROM Customer WHERE FirstName LIKE @Query OR LastName LIKE @Query";
+            command.Parameters.AddWithValue("@Query", $"%{query}%");
+
+            using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return new Customer
+                {
+                    Id = reader.GetInt32(reader.GetOrdinal("CustomerId")),
+                    FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
+                    LastName = reader.GetString(reader.GetOrdinal("LastName")),
+                    Email = reader.GetString(reader.GetOrdinal("Email")),
+                    Phone = reader.GetString(reader.GetOrdinal("Phone")),
+                    Country = reader.GetString(reader.GetOrdinal("Country")),
+                    PostalCode = reader.GetString(reader.GetOrdinal("PostalCode")),
+                };
+            }
+
+            return null;
+        }
+
         public async Task AddCustomerAsync(Customer customer)
         {
             try
