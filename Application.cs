@@ -1,5 +1,6 @@
 using ChinookApp.Models;
 using ChinookSuperheroes.Repositories;
+using static ChinookApp.Helpers.Helpers;
 
 namespace ChinookSuperheroes
 {
@@ -13,6 +14,10 @@ namespace ChinookSuperheroes
             _customerRepository = customerRepository;
         }
 
+        /// <summary>
+        /// Runs the application asynchronously based on the provided command-line arguments.
+        /// </summary>
+        /// <param name="args">Command-line arguments.</param>
         public async Task RunAsync(string[] args)
         {
             if (!_isInitialized)
@@ -33,76 +38,86 @@ namespace ChinookSuperheroes
                     await InitializeDatabaseAsync();
                     break;
                 case "add":
-                    if (args.Length < 2) 
-                    {
-                        Console.WriteLine("Please specify what to add: superhero or power");
-                        return;
-                    }
-                    switch (args[1].ToLower())
-                    {
-                        case "superhero":
-                            await AddSuperheroAsync();
-                            break;
-                        case "power":
-                            await AddPowerAsync();
-                            break;
-                        default:
-                            Console.WriteLine("Unknown add command. Use 'superhero' or 'power'.");
-                            break;
-                    }
+                    await AddCustomerAsync();
+                    break;
+                case "update":
+                    await UpdateCustomerAsync();
+                    break;
+                case "delete":
+                    await DeleteCustomerAsync();
                     break;
                 case "list":
-                    if (args.Length < 2) 
-                    {
-                        Console.WriteLine("Please specify what to list: superheroes or powers");
-                        return;
-                    }
-                    switch (args[1].ToLower())
-                    {
-                        case "superheroes":
-                            await ListSuperheroesAsync();
-                            break;
-                        case "powers":
-                            await ListPowersAsync();
-                            break;
-                        case "customers":
-                            await ListCustomersAsync();
-                            break;
-                        default:
-                            Console.WriteLine("Unknown list command. Use 'superheroes', 'powers', or 'customers'.");
-                            break;
-                    }
+                    await ListCustomersAsync();
                     break;
                 default:
-                    Console.WriteLine("Unknown command. Use 'init', 'add', or 'list'.");
+                    Console.WriteLine("Unknown command. Use 'init', 'add', 'update', 'delete', or 'list'.");
                     ShowHelp();
                     break;
             }
         }
 
-        private void ShowHelp()
-        {
-            Console.WriteLine("Available commands:");
-            Console.WriteLine("  init - Initialize the database");
-            Console.WriteLine("  add superhero - Add a new superhero");
-            Console.WriteLine("  add power - Add a new superpower");
-            Console.WriteLine("  list superheroes - List all superheroes");
-            Console.WriteLine("  list powers - List all superpowers");
-            Console.WriteLine("  list customers - List all customers");
-        }
+        /// <summary>
+        /// Adds a new customer to the database asynchronously.
+        /// </summary>
         private async Task AddCustomerAsync()
         {
-            Console.WriteLine("Adding a new customer...");
-            Console.Write("Enter customer's first name: ");
-            string firstName = Console.ReadLine() ?? string.Empty;
-            Console.Write("Enter customer's last name: ");
-            string lastName = Console.ReadLine() ?? string.Empty;
-
             var newCustomer = new Customer
             {
-                FirstName = firstName,
-                LastName = lastName
+                FirstName = "",
+                LastName = "",
+                Email = "",
+                Phone = "",
+                Country = "",
+                PostalCode = ""
             };
+
+            // First Name
+            do
+            {
+                Console.Write("Enter customer's first name (required): ");
+                newCustomer.FirstName = Console.ReadLine()?.Trim() ?? "";
+                if (string.IsNullOrWhiteSpace(newCustomer.FirstName))
+                {
+                    Console.WriteLine("First name is required. Please enter a valid name.");
+                }
+            } while (string.IsNullOrWhiteSpace(newCustomer.FirstName));
+
+            // Last Name
+            do
+            {
+                Console.Write("Enter customer's last name (required): ");
+                newCustomer.LastName = Console.ReadLine()?.Trim() ?? "";
+                if (string.IsNullOrWhiteSpace(newCustomer.LastName))
+                {
+                    Console.WriteLine("Last name is required. Please enter a valid name.");
+                }
+            } while (string.IsNullOrWhiteSpace(newCustomer.LastName));
+
+            // Email
+            do
+            {
+                Console.Write("Enter customer's email (required): ");
+                newCustomer.Email = Console.ReadLine()?.Trim() ?? "";
+                if (string.IsNullOrWhiteSpace(newCustomer.Email))
+                {
+                    Console.WriteLine("Email is required. Please enter a valid email address.");
+                }
+                else if (!IsValidEmail(newCustomer.Email))
+                {
+                    Console.WriteLine("Invalid email format. Please enter a valid email address.");
+                    newCustomer.Email = ""; // Reset to force re-entry
+                }
+            } while (string.IsNullOrWhiteSpace(newCustomer.Email) || !IsValidEmail(newCustomer.Email));
+
+            // Optional fields
+            Console.Write("Enter customer's phone: ");
+            newCustomer.Phone = Console.ReadLine()?.Trim() ?? "";
+
+            Console.Write("Enter customer's country: ");
+            newCustomer.Country = Console.ReadLine()?.Trim() ?? "";
+
+            Console.Write("Enter customer's postal code: ");
+            newCustomer.PostalCode = Console.ReadLine()?.Trim() ?? "";
 
             try
             {
@@ -115,9 +130,11 @@ namespace ChinookSuperheroes
             }
         }
 
+        /// <summary>
+        /// Updates an existing customer in the database asynchronously.
+        /// </summary>
         private async Task UpdateCustomerAsync()
         {
-            Console.WriteLine("Updating a customer...");
             Console.Write("Enter customer ID to update: ");
             if (!int.TryParse(Console.ReadLine(), out int customerId))
             {
@@ -128,17 +145,34 @@ namespace ChinookSuperheroes
             var existingCustomer = await _customerRepository.GetCustomerByIdAsync(customerId);
             if (existingCustomer == null)
             {
-                Console.WriteLine("Customer not found.");
+                Console.WriteLine("Customer not found in the database.");
                 return;
             }
 
             Console.Write($"Enter new first name (current: {existingCustomer.FirstName}): ");
-            string firstName = Console.ReadLine() ?? existingCustomer.FirstName;
-            Console.Write($"Enter new last name (current: {existingCustomer.LastName}): ");
-            string lastName = Console.ReadLine() ?? existingCustomer.LastName;
+            existingCustomer.FirstName = Console.ReadLine()?.Trim() ?? existingCustomer.FirstName;
 
-            existingCustomer.FirstName = firstName;
-            existingCustomer.LastName = lastName;
+            Console.Write($"Enter new last name (current: {existingCustomer.LastName}): ");
+            existingCustomer.LastName = Console.ReadLine()?.Trim() ?? existingCustomer.LastName;
+
+            Console.Write($"Enter new email (current: {existingCustomer.Email}): ");
+            string newEmail = Console.ReadLine()?.Trim() ?? existingCustomer.Email;
+            while (!string.IsNullOrWhiteSpace(newEmail) && !IsValidEmail(newEmail))
+            {
+                Console.WriteLine("Invalid email format. Please enter a valid email address.");
+                Console.Write($"Enter new email (current: {existingCustomer.Email}): ");
+                newEmail = Console.ReadLine()?.Trim() ?? existingCustomer.Email;
+            }
+            existingCustomer.Email = newEmail;
+
+            Console.Write($"Enter new phone (current: {existingCustomer.Phone}): ");
+            existingCustomer.Phone = Console.ReadLine()?.Trim() ?? existingCustomer.Phone;
+
+            Console.Write($"Enter new country (current: {existingCustomer.Country}): ");
+            existingCustomer.Country = Console.ReadLine()?.Trim() ?? existingCustomer.Country;
+
+            Console.Write($"Enter new postal code (current: {existingCustomer.PostalCode}): ");
+            existingCustomer.PostalCode = Console.ReadLine()?.Trim() ?? existingCustomer.PostalCode;
 
             try
             {
@@ -151,6 +185,9 @@ namespace ChinookSuperheroes
             }
         }
 
+        /// <summary>
+        /// Deletes a customer from the database asynchronously.
+        /// </summary>
         private async Task DeleteCustomerAsync()
         {
             Console.WriteLine("Deleting a customer...");
@@ -172,6 +209,9 @@ namespace ChinookSuperheroes
             }
         }
 
+        /// <summary>
+        /// Initializes the database asynchronously.
+        /// </summary>
         private async Task InitializeDatabaseAsync()
         {
             try
@@ -182,41 +222,22 @@ namespace ChinookSuperheroes
             catch (Exception ex)
             {
                 Console.WriteLine($"Error initializing database: {ex.Message}");
-                throw; // Re-throw the exception to stop execution if initialization fails
+                throw new Exception($"Error initializing database: {ex.Message}", ex);
             }
         }
 
-        private async Task AddSuperheroAsync()
-        {
-            Console.WriteLine("Adding a new superhero...");
-            await AddCustomerAsync();
-        }
-
-        private async Task AddPowerAsync()
-        {
-            Console.WriteLine("Adding a new superpower...");
-            await AddCustomerAsync();
-        }
-
-        private async Task ListSuperheroesAsync()
-        {
-            Console.WriteLine("Listing all superheroes...");
-            await ListCustomersAsync();
-        }
-
-        private async Task ListPowersAsync()
-        {
-            Console.WriteLine("Listing all superpowers...");
-            await AddCustomerAsync();
-        }
-
+        /// <summary>
+        /// Lists all customers in the database asynchronously.
+        /// </summary>
         private async Task ListCustomersAsync()
         {
             Console.WriteLine("Listing all customers...");
             var customers = await _customerRepository.GetAllCustomersAsync();
             foreach (var customer in customers)
             {
-                Console.WriteLine($"ID: {customer.Id}, Name: {customer.FirstName}, Lastname: {customer.LastName}");
+                Console.WriteLine($"ID: {customer.Id}, Name: {customer.FirstName} {customer.LastName}, Email: {customer.Email}");
+                Console.WriteLine($"Phone: {customer.Phone}, Country: {customer.Country}, Postal Code: {customer.PostalCode}");
+                Console.WriteLine(new string('-', 50));
             }
         }
     }

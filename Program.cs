@@ -7,6 +7,10 @@ using Microsoft.Extensions.DependencyInjection;
 
 class Program
 {
+    /// <summary>
+    /// The main entry point for the application.
+    /// </summary>
+    /// <param name="args">Command line arguments.</param>
     static async Task Main(string[] args)
     {
         try
@@ -46,6 +50,12 @@ class Program
         }
     }
 
+    /// <summary>
+    /// Retrieves the connection string from the configuration.
+    /// </summary>
+    /// <param name="configuration">The application configuration.</param>
+    /// <returns>The connection string for the ChinookSuperheroes database.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the connection string is not found in the configuration.</exception>
     static string GetConnectionString(IConfiguration configuration)
     {
         string connectionString = configuration.GetConnectionString("ChinookSuperheroes")!;

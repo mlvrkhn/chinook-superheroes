@@ -15,13 +15,19 @@ namespace ChinookApp.Models
         /// <summary>
         /// Gets or sets the first name of the customer.
         /// </summary>
-        public string FirstName { get; set; } = string.Empty;
+        public string FirstName { get; set; }
 
         /// <summary>
         /// Gets or sets the last name of the customer.
         /// This field is required and cannot be null.
         /// </summary>
-        public string LastName { get; set; } = string.Empty;
+        public string LastName { get; set; }
+
+        /// <summary>
+        /// Gets or sets the email address of the customer.
+        /// This field is required and cannot be null.
+        /// </summary>
+        public string Email { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets or sets the country where the customer resides.
@@ -40,11 +46,5 @@ namespace ChinookApp.Models
         /// This field is optional and can be null.
         /// </summary>
         public string Phone { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Gets or sets the email address of the customer.
-        /// This field is required and cannot be null.
-        /// </summary>
-        public string Email { get; set; } = string.Empty;
     }
 }
