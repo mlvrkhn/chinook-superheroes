@@ -31,7 +31,10 @@ namespace ChinookSuperheroes.Repositories
                     Id = reader.GetInt32(reader.GetOrdinal("CustomerId")),
                     FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
                     LastName = reader.GetString(reader.GetOrdinal("LastName")),
-                    // Add other properties as needed
+                    Email = reader.GetString(reader.GetOrdinal("Email")),
+                    Phone = reader.GetString(reader.GetOrdinal("Phone")),
+                    Country = reader.GetString(reader.GetOrdinal("Country")),
+                    PostalCode = reader.GetString(reader.GetOrdinal("PostalCode")),
                 });
             }
 
@@ -52,7 +55,10 @@ namespace ChinookSuperheroes.Repositories
                     Id = reader.GetInt32(reader.GetOrdinal("CustomerId")),
                     FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
                     LastName = reader.GetString(reader.GetOrdinal("LastName")),
-                    // Add other properties as needed
+                    Email = reader.GetString(reader.GetOrdinal("Email")),
+                    Phone = reader.GetString(reader.GetOrdinal("Phone")),
+                    Country = reader.GetString(reader.GetOrdinal("Country")),
+                    PostalCode = reader.GetString(reader.GetOrdinal("PostalCode")),
                 };
             }
 
@@ -61,28 +67,48 @@ namespace ChinookSuperheroes.Repositories
 
         public async Task AddCustomerAsync(Customer customer)
         {
-            var command = new SqlCommand("INSERT INTO Customer (FirstName, LastName) VALUES (@FirstName, @LastName)", _connection);
-            command.Parameters.AddWithValue("@FirstName", customer.FirstName);
-            command.Parameters.AddWithValue("@LastName", customer.LastName);
-            // Add other parameters as needed
+            try
+            {
+                var command = new SqlCommand("INSERT INTO Customer (FirstName, LastName, Email, Phone, Country, PostalCode) VALUES (@FirstName, @LastName, @Email, @Phone, @Country, @PostalCode)", _connection);
+                command.Parameters.AddWithValue("@FirstName", customer.FirstName);
+                command.Parameters.AddWithValue("@LastName", customer.LastName);
+                command.Parameters.AddWithValue("@Email", customer.Email);
+                command.Parameters.AddWithValue("@Phone", customer.Phone);
+                command.Parameters.AddWithValue("@Country", customer.Country);
+                command.Parameters.AddWithValue("@PostalCode", customer.PostalCode);
 
-            await command.ExecuteNonQueryAsync();
+                await command.ExecuteNonQueryAsync();
+            }
+            catch (SqlException ex)
+            {
+                throw new Exception($"Error adding customer: {ex.Message}", ex);
+            }
         }
 
         public async Task UpdateCustomerAsync(Customer customer)
         {
-            var command = _connection.CreateCommand();
-            command.CommandText = @"
-                UPDATE Customer 
-                SET FirstName = @FirstName, LastName = @LastName, /* other fields... */
-                WHERE CustomerId = @CustomerId";
-            
-            command.Parameters.AddWithValue("@CustomerId", customer.Id);
-            command.Parameters.AddWithValue("@FirstName", customer.FirstName);
-            command.Parameters.AddWithValue("@LastName", customer.LastName);
-            // Add other parameters as needed
+            try
+            {
+                var command = _connection.CreateCommand();
+                command.CommandText = @"
+                    UPDATE Customer 
+                    SET FirstName = @FirstName, LastName = @LastName, Email = @Email, Phone = @Phone, Country = @Country, PostalCode = @PostalCode
+                    WHERE CustomerId = @CustomerId";
+                
+                command.Parameters.AddWithValue("@CustomerId", customer.Id);
+                command.Parameters.AddWithValue("@FirstName", customer.FirstName);
+                command.Parameters.AddWithValue("@LastName", customer.LastName);
+                command.Parameters.AddWithValue("@Email", customer.Email);
+                command.Parameters.AddWithValue("@Phone", customer.Phone);
+                command.Parameters.AddWithValue("@Country", customer.Country);
+                command.Parameters.AddWithValue("@PostalCode", customer.PostalCode);
 
-            await command.ExecuteNonQueryAsync();
+                await command.ExecuteNonQueryAsync();
+            }
+            catch (SqlException ex)
+            {
+                throw new Exception($"Error updating customer: {ex.Message}", ex);
+            }
         }
 
         public async Task DeleteCustomerAsync(int id)
@@ -145,34 +171,31 @@ namespace ChinookSuperheroes.Repositories
 
         private async Task CreateTablesAsync()
         {
-            string[] sqlFiles = Directory.GetFiles("SQL_Commands", "*.sql");
+            var command = _connection.CreateCommand();
+            command.CommandText = @"
+                IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Customer' AND xtype='U')
+                BEGIN
+                    CREATE TABLE Customer (
+                        CustomerId INT PRIMARY KEY IDENTITY(1,1),
+                        FirstName NVARCHAR(40) NOT NULL,
+                        LastName NVARCHAR(20) NOT NULL,
+                        Email NVARCHAR(60) NOT NULL,
+                        Phone NVARCHAR(24),
+                        Country NVARCHAR(40),
+                        PostalCode NVARCHAR(10)
+                    )
+                END";
 
-            foreach (string sqlFile in sqlFiles)
+            try
             {
-                string sqlContent = await File.ReadAllTextAsync(sqlFile);
-                string[] sqlCommands = sqlContent.Split(new[] { "GO" }, StringSplitOptions.RemoveEmptyEntries);
-
-                foreach (string sqlCommand in sqlCommands)
-                {
-                    if (string.IsNullOrWhiteSpace(sqlCommand))
-                        continue;
-
-                    using var command = _connection.CreateCommand();
-                    command.CommandText = sqlCommand;
-                    try
-                    {
-                        await command.ExecuteNonQueryAsync();
-                    }
-                    catch (SqlException ex)
-                    {
-                        Console.WriteLine($"Error executing SQL from {Path.GetFileName(sqlFile)}: {ex.Message}");
-                        // Optionally, you might want to throw the exception here if you want to stop the process
-                        // throw;
-                    }
-                }
+                await command.ExecuteNonQueryAsync();
+                Console.WriteLine("Customer table created successfully or already exists.");
             }
-
-            Console.WriteLine("All tables created successfully.");
+            catch (SqlException ex)
+            {
+                Console.WriteLine($"Error creating Customer table: {ex.Message}");
+                throw;
+            }
         }
     }
 }
