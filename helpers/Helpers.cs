@@ -2,6 +2,11 @@ namespace ChinookApp.Helpers
 {
     public static class Helpers
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="email"></param>
+        /// <returns></returns>
         public static bool IsValidEmail(string email)
         {
             try
