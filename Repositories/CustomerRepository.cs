@@ -363,5 +363,106 @@ namespace ChinookSuperheroes.Repositories
 
             return customers;
         }
+
+        /// <summary>
+        /// Retrieves the count of customers by country in descending order asynchronously.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation. The task result contains an enumerable collection of customer countries with their respective customer counts.</returns>
+        public async Task<IEnumerable<CustomerCountry>> GetCustomerCountByCountryDescAsync()
+        {
+            var customerCountries = new List<CustomerCountry>();
+            var command = _connection.CreateCommand();
+            command.CommandText = @"
+                SELECT Country, COUNT(*) AS CustomerCount
+                FROM Customer
+                GROUP BY Country
+                ORDER BY CustomerCount DESC";
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                customerCountries.Add(new CustomerCountry
+                {
+                    Name = reader.GetString(reader.GetOrdinal("Country")),
+                    CustomerCount = reader.GetInt32(reader.GetOrdinal("CustomerCount"))
+                });
+            }
+
+            return customerCountries;
+        }
+
+        /// <summary>
+        /// Retrieves the high spenders in descending order asynchronously.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation. The task result contains an enumerable collection of customer spenders with their respective total spent amounts.</returns>
+        public async Task<IEnumerable<CustomerSpender>> GetHighSpendersDescendingAsync()
+        {
+            var highSpenders = new List<CustomerSpender>();
+            var command = _connection.CreateCommand();
+            command.CommandText = @"
+                SELECT CustomerId, FirstName + ' ' + LastName AS Name, SUM(Total) AS TotalSpent
+                FROM Invoice
+                INNER JOIN Customer ON Invoice.CustomerId = Customer.CustomerId
+                GROUP BY CustomerId, FirstName, LastName
+                ORDER BY TotalSpent DESC";
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                highSpenders.Add(new CustomerSpender
+                {
+                    Id = reader.GetInt32(reader.GetOrdinal("CustomerId")),
+                    Name = reader.GetString(reader.GetOrdinal("Name")),
+                    TotalSpent = reader.GetDecimal(reader.GetOrdinal("TotalSpent"))
+                });
+            }
+
+            return highSpenders;
+        }
+
+        /// <summary>
+        /// Retrieves the most popular genres for a given customer asynchronously.
+        /// </summary>
+        /// <param name="customerId">The ID of the customer to retrieve the most popular genres for.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains an enumerable collection of customer genres with their respective track counts.</returns>
+        public async Task<IEnumerable<CustomerGenre>> GetMostPopularGenresByCustomerIdAsync(int customerId)
+        {
+            var popularGenres = new List<CustomerGenre>();
+            var command = _connection.CreateCommand();
+            command.CommandText = @"
+                SELECT Genre.Name, COUNT(*) AS TrackCount
+                FROM InvoiceLine
+                INNER JOIN Invoice ON InvoiceLine.InvoiceId = Invoice.InvoiceId
+                INNER JOIN Track ON InvoiceLine.TrackId = Track.TrackId
+                INNER JOIN Genre ON Track.GenreId = Genre.GenreId
+                WHERE Invoice.CustomerId = @CustomerId
+                GROUP BY Genre.Name
+                HAVING COUNT(*) = (
+                    SELECT MAX(TrackCount)
+                    FROM (
+                        SELECT COUNT(*) AS TrackCount
+                        FROM InvoiceLine
+                        INNER JOIN Invoice ON InvoiceLine.InvoiceId = Invoice.InvoiceId
+                        INNER JOIN Track ON InvoiceLine.TrackId = Track.TrackId
+                        INNER JOIN Genre ON Track.GenreId = Genre.GenreId
+                        WHERE Invoice.CustomerId = @CustomerId
+                        GROUP BY Genre.Name
+                    ) AS GenreCounts
+                )";
+
+            command.Parameters.AddWithValue("@CustomerId", customerId);
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                popularGenres.Add(new CustomerGenre
+                {
+                    Name = reader.GetString(reader.GetOrdinal("Name")),
+                    TrackCount = reader.GetInt32(reader.GetOrdinal("TrackCount"))
+                });
+            }
+
+            return popularGenres;
+        }
     }
 }
