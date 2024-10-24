@@ -31,6 +31,12 @@ namespace ChinookApp.Helpers
             Console.WriteLine("  update - Update an existing customer");
             Console.WriteLine("  delete - Delete a customer");
             Console.WriteLine("  list - List all customers");
+            Console.WriteLine("  search - Search for a customer by name");
+            Console.WriteLine("  getbyid - Get a customer by ID");
+            Console.WriteLine("  getpaged - Get a paginated list of customers");
+            Console.WriteLine("  countbycountry - Get the count of customers by country in descending order");
+            Console.WriteLine("  highspenders - Get the high spenders in descending order");
+            Console.WriteLine("  populargenres - Get the most popular genres for a given customer");
         }
 
     }

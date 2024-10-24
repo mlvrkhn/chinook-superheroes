@@ -46,5 +46,11 @@ namespace ChinookApp.Models
         /// This field is optional and can be null.
         /// </summary>
         public string Phone { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets or sets the total amount spent by the customer.
+        /// This field is optional and can be null.
+        /// </summary>
+        public decimal TotalSpent { get; set; }
     }
 }

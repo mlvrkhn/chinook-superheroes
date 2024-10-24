@@ -281,8 +281,8 @@ namespace ChinookSuperheroes.Repositories
         private async Task<bool> CheckDatabaseExistsAsync()
         {
             var command = _connection.CreateCommand();
-            command.CommandText = "SELECT COUNT(*) FROM sys.databases WHERE name = @dbName";
-            command.Parameters.AddWithValue("@dbName", _connection.Database);
+            command.CommandText = "SELECT COUNT(*) FROM sys.databases WHERE name = 'ChinookDB'";
+            command.Parameters.AddWithValue("@ChinookDB", _connection.Database);
             
             int count = (int)(await command.ExecuteScalarAsync() ?? 0);
             return count > 0;
@@ -338,32 +338,7 @@ namespace ChinookSuperheroes.Repositories
         /// <param name="limit">The maximum number of customers to retrieve.</param>
         /// <param name="offset">The number of customers to skip before starting to retrieve.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains an enumerable collection of customers.</returns>
-        private async Task<IEnumerable<Customer>> GetCustomersPagedAsync(int limit, int offset)
-        {
-            var customers = new List<Customer>();
-            var command = _connection.CreateCommand();
-            command.CommandText = "SELECT * FROM Customer ORDER BY CustomerId OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
-            command.Parameters.AddWithValue("@Offset", (limit - 1) * offset);
-            command.Parameters.AddWithValue("@PageSize", offset);
-
-            using var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                customers.Add(new Customer
-                {
-                    Id = reader.GetInt32(reader.GetOrdinal("CustomerId")),
-                    FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
-                    LastName = reader.GetString(reader.GetOrdinal("LastName")),
-                    Email = reader.GetString(reader.GetOrdinal("Email")),
-                    Phone = reader.GetString(reader.GetOrdinal("Phone")),
-                    Country = reader.GetString(reader.GetOrdinal("Country")),
-                    PostalCode = reader.GetString(reader.GetOrdinal("PostalCode")),
-                });
-            }
-
-            return customers;
-        }
-
+        
         /// <summary>
         /// Retrieves the count of customers by country in descending order asynchronously.
         /// </summary>
@@ -395,24 +370,30 @@ namespace ChinookSuperheroes.Repositories
         /// Retrieves the high spenders in descending order asynchronously.
         /// </summary>
         /// <returns>A task that represents the asynchronous operation. The task result contains an enumerable collection of customer spenders with their respective total spent amounts.</returns>
-        public async Task<IEnumerable<CustomerSpender>> GetHighSpendersDescendingAsync()
+        public async Task<IEnumerable<Customer>> GetHighSpendersDescendingAsync()
         {
-            var highSpenders = new List<CustomerSpender>();
+            var highSpenders = new List<Customer>();
             var command = _connection.CreateCommand();
             command.CommandText = @"
-                SELECT CustomerId, FirstName + ' ' + LastName AS Name, SUM(Total) AS TotalSpent
+                SELECT CustomerId, FirstName, LastName, Email, Phone, Country, PostalCode, SUM(Total) AS TotalSpent
                 FROM Invoice
                 INNER JOIN Customer ON Invoice.CustomerId = Customer.CustomerId
-                GROUP BY CustomerId, FirstName, LastName
+                GROUP BY CustomerId, FirstName, LastName, Email, Phone, Country, PostalCode
                 ORDER BY TotalSpent DESC";
 
             using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                highSpenders.Add(new CustomerSpender
+                highSpenders.Add(new Customer
                 {
                     Id = reader.GetInt32(reader.GetOrdinal("CustomerId")),
-                    Name = reader.GetString(reader.GetOrdinal("Name")),
+                    FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
+                    LastName = reader.GetString(reader.GetOrdinal("LastName")),
+                    Email = reader.GetString(reader.GetOrdinal("Email")),
+                    Phone = reader.GetString(reader.GetOrdinal("Phone")),
+                    Country = reader.GetString(reader.GetOrdinal("Country")),
+                    PostalCode = reader.GetString(reader.GetOrdinal("PostalCode")),
+                    // Assuming you have a TotalSpent property in Customer class
                     TotalSpent = reader.GetDecimal(reader.GetOrdinal("TotalSpent"))
                 });
             }

@@ -51,7 +51,22 @@ namespace ChinookSuperheroes
                     await DeleteCustomerAsync();
                     break;
                 case "list":
-                    await ListCustomersAsync();
+                    await GetAllCustomersAsync();
+                    break;
+                case "getbyid":
+                    await GetCustomerByIdAsync();
+                    break;
+                case "getpaged":
+                    await GetCustomersPagedAsync();
+                    break;
+                case "countbycountry":
+                    await GetCustomerCountByCountryDescAsync();
+                    break;
+                case "highspenders":
+                    await GetHighSpendersDescendingAsync();
+                    break;
+                case "populargenres":
+                    await GetMostPopularGenresByCustomerIdAsync();
                     break;
                 default:
                     Console.WriteLine("Unknown command. Use 'init', 'add', 'update', 'delete', or 'list'.");
@@ -233,7 +248,7 @@ namespace ChinookSuperheroes
         /// <summary>
         /// Lists all customers in the database asynchronously.
         /// </summary>
-        private async Task ListCustomersAsync()
+        private async Task GetAllCustomersAsync()
         {
             Console.WriteLine("Listing all customers...");
             var customers = await _customerRepository.GetAllCustomersAsync();
@@ -280,5 +295,166 @@ namespace ChinookSuperheroes
                 Console.WriteLine($"Error searching for customer: {ex.Message}");
             }
         }
+        private async Task GetCustomerByIdAsync()
+        {
+            Console.Write("Enter customer ID to search: ");
+            if (!int.TryParse(Console.ReadLine()?.Trim(), out int customerId))
+            {
+                Console.WriteLine("Invalid ID format. Please enter a valid numeric ID.");
+                return;
+            }
+
+            try
+            {
+                var customer = await _customerRepository.GetCustomerByIdAsync(customerId);
+
+                if (customer != null)
+                {
+                    Console.WriteLine($"Customer found:");
+                    Console.WriteLine($"ID: {customer.Id}");
+                    Console.WriteLine($"Name: {customer.FirstName} {customer.LastName}");
+                    Console.WriteLine($"Email: {customer.Email}");
+                    Console.WriteLine($"Phone: {customer.Phone}");
+                    Console.WriteLine($"Country: {customer.Country}");
+                    Console.WriteLine($"Postal Code: {customer.PostalCode}");
+                }
+                else
+                {
+                    Console.WriteLine("No customer found with the given ID.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error searching for customer: {ex.Message}");
+            }
+        }
+    private async Task GetCustomersPagedAsync()
+    {
+        Console.Write("Enter the number of customers to retrieve (limit): ");
+        if (!int.TryParse(Console.ReadLine()?.Trim(), out int limit) || limit <= 0)
+        {
+            Console.WriteLine("Invalid limit. Please enter a valid positive number.");
+            return;
+        }
+
+        Console.Write("Enter the offset (number of customers to skip): ");
+        if (!int.TryParse(Console.ReadLine()?.Trim(), out int offset) || offset < 0)
+        {
+            Console.WriteLine("Invalid offset. Please enter a valid non-negative number.");
+            return;
+        }
+
+        try
+        {
+            var customers = await _customerRepository.GetCustomersPagedAsync(limit, offset);
+
+            if (customers != null && customers.Any())
+            {
+                Console.WriteLine($"Retrieved {customers.Count()} customers:");
+                foreach (var customer in customers)
+                {
+                    Console.WriteLine($"ID: {customer.Id}");
+                    Console.WriteLine($"Name: {customer.FirstName} {customer.LastName}");
+                    Console.WriteLine($"Email: {customer.Email}");
+                    Console.WriteLine($"Phone: {customer.Phone}");
+                    Console.WriteLine($"Country: {customer.Country}");
+                    Console.WriteLine($"Postal Code: {customer.PostalCode}");
+                    Console.WriteLine();
+                }
+            }
+            else
+            {
+                Console.WriteLine("No customers found for the given limit and offset.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrieving customers: {ex.Message}");
+            }
+        }
+        
+    private async Task GetCustomerCountByCountryDescAsync()
+    {
+        try
+        {
+            var customerCounts = await _customerRepository.GetCustomerCountByCountryDescAsync();
+
+            if (customerCounts != null && customerCounts.Any())
+            {
+                Console.WriteLine("Customer count by country (descending):");
+                foreach (var customerCountry in customerCounts)
+                {
+                    Console.WriteLine($"Country: {customerCountry.Name}, Customer Count: {customerCountry.CustomerCount}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("No customer count data found.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrieving customer count by country: {ex.Message}");
+        }
+    }
+    private async Task GetHighSpendersDescendingAsync()
+    {
+        try
+        {
+            var highSpenders = await _customerRepository.GetHighSpendersDescendingAsync();
+
+            if (highSpenders != null && highSpenders.Any())
+            {
+                Console.WriteLine("High spenders (descending):");
+                foreach (var spender in highSpenders)
+                {
+                    Console.WriteLine($"ID: {spender.Id}");
+                    Console.WriteLine($"Name: {spender.FirstName} {spender.LastName}");
+                    Console.WriteLine();
+                }
+            }
+            else
+            {
+                Console.WriteLine("No high spenders data found.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrieving high spenders: {ex.Message}");
+        }
+    }
+    private async Task GetMostPopularGenresByCustomerIdAsync()
+    {
+        try
+        {
+            Console.Write("Enter customer ID: ");
+            if (!int.TryParse(Console.ReadLine(), out int customerId))
+            {
+                Console.WriteLine("Invalid customer ID. Please enter a valid number.");
+                return;
+            }
+
+            var popularGenres = await _customerRepository.GetMostPopularGenresByCustomerIdAsync(customerId);
+
+            if (popularGenres != null && popularGenres.Any())
+            {
+                Console.WriteLine($"Most popular genres for customer ID {customerId}:");
+                foreach (var genre in popularGenres)
+                {
+                    Console.WriteLine($"Genre: {genre.Name}, Customer Count: {genre.CustomerCount}, Purchase Count: {genre.PurchaseCount}, Track Count: {genre.TrackCount}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("No popular genres data found for the specified customer.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrieving popular genres: {ex.Message}");
+        }
+    }
+
     }
 }
+    
