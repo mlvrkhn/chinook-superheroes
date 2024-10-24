@@ -11,5 +11,6 @@ namespace ChinookSuperheroes.Repositories
         Task UpdateCustomerAsync(Customer customer);
         Task DeleteCustomerAsync(int id);
         Task InitializeDatabaseAsync();
+        Task<IEnumerable<Customer>> GetCustomersPagedAsync(int limit, int offset);
     }
 }

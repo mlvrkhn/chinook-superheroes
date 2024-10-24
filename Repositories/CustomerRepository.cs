@@ -8,11 +8,19 @@ namespace ChinookSuperheroes.Repositories
         private readonly SqlConnection _connection;
         private static bool _databaseInitialized = false;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CustomerRepository"/> class.
+        /// </summary>
+        /// <param name="connection">The SQL connection to use for database operations.</param>
         public CustomerRepository(SqlConnection connection)
         {
             _connection = connection;
         }
 
+        /// <summary>
+        /// Retrieves all customers from the database asynchronously.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation. The task result contains an enumerable list of customers.</returns>
         public async Task<IEnumerable<Customer>> GetAllCustomersAsync()
         {
             var customers = new List<Customer>();
@@ -36,6 +44,11 @@ namespace ChinookSuperheroes.Repositories
             return customers;
         }
 
+        /// <summary>
+        /// Retrieves a customer by their ID asynchronously.
+        /// </summary>
+        /// <param name="id">The ID of the customer to retrieve.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains the customer if found; otherwise, null.</returns>
         public async Task<Customer?> GetCustomerByIdAsync(int id)
         {
             var command = _connection.CreateCommand();
@@ -60,6 +73,11 @@ namespace ChinookSuperheroes.Repositories
             return null;
         }
 
+        /// <summary>
+        /// Retrieves a customer by their name asynchronously.
+        /// </summary>
+        /// <param name="query">The name query to search for.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains the customer if found; otherwise, null.</returns>
         public async Task<Customer?> GetCustomerByNameAsync(string query)
         {
             var command = _connection.CreateCommand();
@@ -84,6 +102,11 @@ namespace ChinookSuperheroes.Repositories
             return null;
         }
 
+        /// <summary>
+        /// Adds a new customer to the database asynchronously.
+        /// </summary>
+        /// <param name="customer">The customer to add.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         public async Task AddCustomerAsync(Customer customer)
         {
             try
@@ -104,6 +127,77 @@ namespace ChinookSuperheroes.Repositories
             }
         }
 
+        /// <summary>
+        /// Retrieves a paginated list of customers from the database asynchronously.
+        /// </summary>
+        /// <param name="limit">The maximum number of customers to retrieve.</param>
+        /// <param name="offset">The number of customers to skip before starting to retrieve.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains an enumerable list of customers.</returns>
+        public async Task<IEnumerable<Customer>> GetCustomersPagedAsync(int limit, int offset)
+        {
+            var customers = new List<Customer>();
+            var command = _connection.CreateCommand();
+            command.CommandText = @"
+                SELECT * FROM Customer
+                ORDER BY CustomerId
+                OFFSET @Offset ROWS
+                FETCH NEXT @Limit ROWS ONLY";
+            command.Parameters.AddWithValue("@Limit", limit);
+            command.Parameters.AddWithValue("@Offset", offset);
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                customers.Add(new Customer
+                {
+                    Id = reader.GetInt32(reader.GetOrdinal("CustomerId")),
+                    FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
+                    LastName = reader.GetString(reader.GetOrdinal("LastName")),
+                    Email = reader.GetString(reader.GetOrdinal("Email")),
+                    Phone = reader.GetString(reader.GetOrdinal("Phone")),
+                    Country = reader.GetString(reader.GetOrdinal("Country")),
+                    PostalCode = reader.GetString(reader.GetOrdinal("PostalCode")),
+                });
+            }
+
+            return customers;
+        }
+
+        /// <summary>
+        /// Retrieves a customer by their email address asynchronously.
+        /// </summary>
+        /// <param name="email">The email address of the customer to retrieve.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains the customer if found; otherwise, null.</returns>
+        public async Task<Customer?> GetCustomerByEmailAsync(string email)
+        {
+            Customer? customer = null;
+            var command = _connection.CreateCommand();
+            command.CommandText = "SELECT * FROM Customer WHERE Email = @Email";
+            command.Parameters.AddWithValue("@Email", email);
+
+            using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                customer = new Customer
+                {
+                    Id = reader.GetInt32(reader.GetOrdinal("CustomerId")),
+                    FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
+                    LastName = reader.GetString(reader.GetOrdinal("LastName")),
+                    Email = reader.GetString(reader.GetOrdinal("Email")),
+                    Phone = reader.GetString(reader.GetOrdinal("Phone")),
+                    Country = reader.GetString(reader.GetOrdinal("Country")),
+                    PostalCode = reader.GetString(reader.GetOrdinal("PostalCode")),
+                };
+            }
+
+            return customer;
+        }
+
+        /// <summary>
+        /// Updates an existing customer in the database asynchronously.
+        /// </summary>
+        /// <param name="customer">The customer with updated information.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         public async Task UpdateCustomerAsync(Customer customer)
         {
             try
@@ -130,6 +224,11 @@ namespace ChinookSuperheroes.Repositories
             }
         }
 
+        /// <summary>
+        /// Deletes a customer from the database asynchronously.
+        /// </summary>
+        /// <param name="id">The ID of the customer to delete.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         public async Task DeleteCustomerAsync(int id)
         {
             var command = new SqlCommand("DELETE FROM Customer WHERE CustomerId = @Id", _connection);
@@ -138,6 +237,10 @@ namespace ChinookSuperheroes.Repositories
             await command.ExecuteNonQueryAsync();
         }
 
+        /// <summary>
+        /// Initializes the database asynchronously, creating it if it does not exist.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         public async Task InitializeDatabaseAsync()
         {
             if (_databaseInitialized) return;
@@ -171,6 +274,10 @@ namespace ChinookSuperheroes.Repositories
             }
         }
 
+        /// <summary>
+        /// Checks if the database exists asynchronously.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation. The task result contains a boolean indicating whether the database exists.</returns>
         private async Task<bool> CheckDatabaseExistsAsync()
         {
             var command = _connection.CreateCommand();
@@ -181,6 +288,10 @@ namespace ChinookSuperheroes.Repositories
             return count > 0;
         }
 
+        /// <summary>
+        /// Creates the database asynchronously.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         private async Task CreateDatabaseAsync()
         {
             var command = _connection.CreateCommand();
@@ -188,6 +299,10 @@ namespace ChinookSuperheroes.Repositories
             await command.ExecuteNonQueryAsync();
         }
 
+        /// <summary>
+        /// Creates the necessary tables in the database asynchronously.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         private async Task CreateTablesAsync()
         {
             var command = _connection.CreateCommand();
@@ -215,6 +330,38 @@ namespace ChinookSuperheroes.Repositories
                 Console.WriteLine($"Error creating Customer table: {ex.Message}");
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Retrieves a paginated list of customers from the database asynchronously.
+        /// </summary>
+        /// <param name="limit">The maximum number of customers to retrieve.</param>
+        /// <param name="offset">The number of customers to skip before starting to retrieve.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains an enumerable collection of customers.</returns>
+        private async Task<IEnumerable<Customer>> GetCustomersPagedAsync(int limit, int offset)
+        {
+            var customers = new List<Customer>();
+            var command = _connection.CreateCommand();
+            command.CommandText = "SELECT * FROM Customer ORDER BY CustomerId OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY";
+            command.Parameters.AddWithValue("@Offset", (limit - 1) * offset);
+            command.Parameters.AddWithValue("@PageSize", offset);
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                customers.Add(new Customer
+                {
+                    Id = reader.GetInt32(reader.GetOrdinal("CustomerId")),
+                    FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
+                    LastName = reader.GetString(reader.GetOrdinal("LastName")),
+                    Email = reader.GetString(reader.GetOrdinal("Email")),
+                    Phone = reader.GetString(reader.GetOrdinal("Phone")),
+                    Country = reader.GetString(reader.GetOrdinal("Country")),
+                    PostalCode = reader.GetString(reader.GetOrdinal("PostalCode")),
+                });
+            }
+
+            return customers;
         }
     }
 }
